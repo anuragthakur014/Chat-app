@@ -6,9 +6,7 @@ const cors = require("cors");
 
 const mongoose = require("mongoose");
 
-const https = require("https");
-
-const fs = require("fs");
+const http = require("http");
 
 const { Server } = require("socket.io");
 
@@ -20,13 +18,11 @@ const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
 
-const server = https.createServer(
-  {
-    key: fs.readFileSync(__dirname + "/ssl/key.pem"),
-    cert: fs.readFileSync(__dirname + "/ssl/cert.pem"),
-  },
-  app,
-);
+// ==========================
+// HTTP SERVER
+// ==========================
+
+const server = http.createServer(app);
 
 // ==========================
 // PEER SERVER
@@ -44,7 +40,7 @@ app.use("/peerjs", peerServer);
 
 const io = new Server(server, {
   cors: {
-    origin: ["https://192.168.1.50:5173", "https://localhost:5173"],
+    origin: "*",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -86,10 +82,15 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", (data) => {
     const { receiverId, message } = data;
 
-    const receiverSocketId = onlineUsers[String(receiverId)]?.socketId;
+    const receiverSocketId =
+      onlineUsers[String(receiverId)]?.socketId;
 
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit("receiveMessage", message);
+      io.to(receiverSocketId).emit(
+        "receiveMessage",
+        message
+      );
+
       message.delivered = true;
     }
   });
@@ -99,7 +100,8 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("typing", (data) => {
-    const receiverSocketId = onlineUsers[String(data.receiverId)]?.socketId;
+    const receiverSocketId =
+      onlineUsers[String(data.receiverId)]?.socketId;
 
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("typing", {
@@ -113,7 +115,8 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("stopTyping", (data) => {
-    const receiverSocketId = onlineUsers[String(data.receiverId)]?.socketId;
+    const receiverSocketId =
+      onlineUsers[String(data.receiverId)]?.socketId;
 
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("stopTyping", {
@@ -127,7 +130,8 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("messageSeen", (data) => {
-    const senderSocketId = onlineUsers[String(data.senderId)]?.socketId;
+    const senderSocketId =
+      onlineUsers[String(data.senderId)]?.socketId;
 
     if (senderSocketId) {
       io.to(senderSocketId).emit("messageSeen", {
@@ -143,16 +147,15 @@ io.on("connection", (socket) => {
   socket.on("callUser", (data) => {
     console.log("CALL USER:", data);
 
-    const userSocketId = onlineUsers[String(data.userToCall)]?.socketId;
+    const userSocketId =
+      onlineUsers[String(data.userToCall)]?.socketId;
 
     console.log("TARGET SOCKET:", userSocketId);
 
     if (userSocketId) {
       io.to(userSocketId).emit("incomingCall", {
         signal: data.signalData,
-
         from: data.from,
-
         name: data.name,
       });
 
@@ -169,28 +172,41 @@ io.on("connection", (socket) => {
   socket.on("answerCall", (data) => {
     console.log("ANSWER CALL:", data);
 
-    const callerSocketId = onlineUsers[String(data.to)]?.socketId;
+    const callerSocketId =
+      onlineUsers[String(data.to)]?.socketId;
 
     console.log("CALLER SOCKET:", callerSocketId);
 
     if (callerSocketId) {
-      io.to(callerSocketId).emit("callAccepted", data.signal);
+      io.to(callerSocketId).emit(
+        "callAccepted",
+        data.signal
+      );
 
       console.log("ANSWER SENT");
     }
   });
 
+  // ==========================
   // REJECT CALL
+  // ==========================
+
   socket.on("rejectCall", (data) => {
-    const callerSocketId = onlineUsers[String(data.to)]?.socketId;
+    const callerSocketId =
+      onlineUsers[String(data.to)]?.socketId;
 
     if (callerSocketId) {
       io.to(callerSocketId).emit("callRejected");
     }
   });
+
+  // ==========================
   // END CALL
+  // ==========================
+
   socket.on("endCall", (data) => {
-    const userSocketId = onlineUsers[String(data.to)]?.socketId;
+    const userSocketId =
+      onlineUsers[String(data.to)]?.socketId;
 
     if (userSocketId) {
       io.to(userSocketId).emit("callEnded");
@@ -205,17 +221,23 @@ io.on("connection", (socket) => {
     console.log("USER DISCONNECTED:", socket.id);
 
     for (const userId in onlineUsers) {
-      if (onlineUsers[userId]?.socketId === socket.id) {
+      if (
+        onlineUsers[userId]?.socketId === socket.id
+      ) {
         delete onlineUsers[userId];
 
-        // UPDATE LAST SEEN
-        await mongoose.model("User").findByIdAndUpdate(userId, {
-          lastSeen: new Date(),
-        });
+        await mongoose
+          .model("User")
+          .findByIdAndUpdate(userId, {
+            lastSeen: new Date(),
+          });
       }
     }
 
-    io.emit("onlineUsers", Object.keys(onlineUsers));
+    io.emit(
+      "onlineUsers",
+      Object.keys(onlineUsers)
+    );
   });
 });
 
@@ -225,7 +247,7 @@ io.on("connection", (socket) => {
 
 app.use(
   cors({
-    origin: ["https://192.168.1.50:5173", "https://localhost:5173"],
+    origin: "*",
     credentials: true,
   }),
 );
@@ -255,20 +277,24 @@ mongoose
 // ROUTES
 // ==========================
 
-// ROUTES
 app.use("/api/auth", authRoutes);
 
 app.use("/api/messages", messageRoutes);
 
 // ==========================
 // TEST ROUTE
+// ==========================
+
 app.get("/", (req, res) => {
   res.send("Server Running 🚀");
 });
 
+// ==========================
 // SERVER
+// ==========================
+
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on https://192.168.1.50:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
