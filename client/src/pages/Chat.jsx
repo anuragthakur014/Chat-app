@@ -101,74 +101,117 @@ function Chat() {
     };
   }, [user]);
 
-  // RECEIVE MESSAGE
-  useEffect(() => {
-    const handleReceiveMessage = async (newMessage) => {
+ // RECEIVE MESSAGE
+useEffect(() => {
+
+  const handleReceiveMessage = async (newMessage) => {
+
+    const senderId =
+      newMessage.sender?._id || newMessage.sender;
+
+    const receiverId =
+      newMessage.receiver?._id || newMessage.receiver;
+
+    // ONLY ADD MESSAGE IF CURRENT CHAT OPEN
+    if (
+      selectedUser &&
+      (
+        senderId === selectedUser._id ||
+        receiverId === selectedUser._id
+      )
+    ) {
+
       setMessages((prev) => {
-        const exists = prev.some((msg) => msg._id === newMessage._id);
+
+        const exists = prev.some(
+          (msg) => msg._id === newMessage._id
+        );
 
         if (exists) return prev;
 
         return [...prev, newMessage];
+
       });
 
-      playNotificationSound();
+    }
 
-      const senderId = newMessage.sender?._id || newMessage.sender;
+    playNotificationSound();
 
-      if (!selectedUser || selectedUser._id !== senderId) {
-        setUnreadCounts((prev) => ({
-          ...prev,
-          [senderId]: (prev[senderId] || 0) + 1,
-        }));
-      }
+    // UNREAD COUNT
+    if (!selectedUser || selectedUser._id !== senderId) {
 
-      const senderUser = allUsers.find((u) => u._id === senderId);
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [senderId]: (prev[senderId] || 0) + 1,
+      }));
 
-      const senderName = senderUser?.name || "Someone";
+    }
 
-      // NOTIFICATION
-      if (Notification.permission === "granted" && document.hidden) {
-        new Notification(`${senderName} sent a message`, {
-          body: newMessage.text
-            ? newMessage.text
-            : newMessage.image
-              ? "📷 Sent an image"
-              : "🎤 Sent a voice message",
+    const senderUser = allUsers.find(
+      (u) => u._id === senderId
+    );
 
-          icon: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-        });
-      }
+    const senderName = senderUser?.name || "Someone";
 
-      if (selectedUser && senderId === selectedUser._id) {
-        try {
-          await API.put(
-            `/messages/seen/${newMessage._id}`,
-            {},
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
+    // NOTIFICATION
+    if (
+      Notification.permission === "granted" &&
+      document.hidden
+    ) {
+
+      new Notification(`${senderName} sent a message`, {
+        body: newMessage.text
+          ? newMessage.text
+          : newMessage.image
+            ? "📷 Sent an image"
+            : "🎤 Sent a voice message",
+
+        icon:
+          "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+      });
+
+    }
+
+    // MESSAGE SEEN
+    if (
+      selectedUser &&
+      senderId === selectedUser._id
+    ) {
+
+      try {
+
+        await API.put(
+          `/messages/seen/${newMessage._id}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
             },
-          );
+          },
+        );
 
-          socket.emit("messageSeen", {
-            senderId,
-            messageId: newMessage._id,
-          });
-        } catch (error) {
-          console.log(error);
-        }
+        socket.emit("messageSeen", {
+          senderId,
+          messageId: newMessage._id,
+        });
+
+      } catch (error) {
+
+        console.log(error);
+
       }
-    };
 
-    socket.on("receiveMessage", handleReceiveMessage);
+    }
 
-    return () => {
-      socket.off("receiveMessage", handleReceiveMessage);
-    };
-  }, [selectedUser, token, allUsers]);
+  };
 
+  socket.on("receiveMessage", handleReceiveMessage);
+
+  return () => {
+    socket.off("receiveMessage", handleReceiveMessage);
+  };
+
+}, [selectedUser, token, allUsers]);
   // TYPING
   useEffect(() => {
     const handleTyping = (data) => {
