@@ -158,7 +158,7 @@ router.post(
   upload.single("profile"),
   async (req, res) => {
     try {
-      const imageUrl = `https://192.168.1.50:5000/uploads/${req.file.filename}`;
+      const imageUrl = `https://chat-app-gtzp.onrender.com/uploads/${req.file.filename}`;
 
       const user = await User.findByIdAndUpdate(
         req.userId,

@@ -82,14 +82,10 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", (data) => {
     const { receiverId, message } = data;
 
-    const receiverSocketId =
-      onlineUsers[String(receiverId)]?.socketId;
+    const receiverSocketId = onlineUsers[String(receiverId)]?.socketId;
 
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit(
-        "receiveMessage",
-        message
-      );
+      io.to(receiverSocketId).emit("receiveMessage", message);
 
       message.delivered = true;
     }
@@ -100,8 +96,7 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("typing", (data) => {
-    const receiverSocketId =
-      onlineUsers[String(data.receiverId)]?.socketId;
+    const receiverSocketId = onlineUsers[String(data.receiverId)]?.socketId;
 
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("typing", {
@@ -115,8 +110,7 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("stopTyping", (data) => {
-    const receiverSocketId =
-      onlineUsers[String(data.receiverId)]?.socketId;
+    const receiverSocketId = onlineUsers[String(data.receiverId)]?.socketId;
 
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("stopTyping", {
@@ -130,8 +124,7 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("messageSeen", (data) => {
-    const senderSocketId =
-      onlineUsers[String(data.senderId)]?.socketId;
+    const senderSocketId = onlineUsers[String(data.senderId)]?.socketId;
 
     if (senderSocketId) {
       io.to(senderSocketId).emit("messageSeen", {
@@ -147,8 +140,7 @@ io.on("connection", (socket) => {
   socket.on("callUser", (data) => {
     console.log("CALL USER:", data);
 
-    const userSocketId =
-      onlineUsers[String(data.userToCall)]?.socketId;
+    const userSocketId = onlineUsers[String(data.userToCall)]?.socketId;
 
     console.log("TARGET SOCKET:", userSocketId);
 
@@ -172,16 +164,12 @@ io.on("connection", (socket) => {
   socket.on("answerCall", (data) => {
     console.log("ANSWER CALL:", data);
 
-    const callerSocketId =
-      onlineUsers[String(data.to)]?.socketId;
+    const callerSocketId = onlineUsers[String(data.to)]?.socketId;
 
     console.log("CALLER SOCKET:", callerSocketId);
 
     if (callerSocketId) {
-      io.to(callerSocketId).emit(
-        "callAccepted",
-        data.signal
-      );
+      io.to(callerSocketId).emit("callAccepted", data.signal);
 
       console.log("ANSWER SENT");
     }
@@ -192,8 +180,7 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("rejectCall", (data) => {
-    const callerSocketId =
-      onlineUsers[String(data.to)]?.socketId;
+    const callerSocketId = onlineUsers[String(data.to)]?.socketId;
 
     if (callerSocketId) {
       io.to(callerSocketId).emit("callRejected");
@@ -205,8 +192,7 @@ io.on("connection", (socket) => {
   // ==========================
 
   socket.on("endCall", (data) => {
-    const userSocketId =
-      onlineUsers[String(data.to)]?.socketId;
+    const userSocketId = onlineUsers[String(data.to)]?.socketId;
 
     if (userSocketId) {
       io.to(userSocketId).emit("callEnded");
@@ -221,23 +207,16 @@ io.on("connection", (socket) => {
     console.log("USER DISCONNECTED:", socket.id);
 
     for (const userId in onlineUsers) {
-      if (
-        onlineUsers[userId]?.socketId === socket.id
-      ) {
+      if (onlineUsers[userId]?.socketId === socket.id) {
         delete onlineUsers[userId];
 
-        await mongoose
-          .model("User")
-          .findByIdAndUpdate(userId, {
-            lastSeen: new Date(),
-          });
+        await mongoose.model("User").findByIdAndUpdate(userId, {
+          lastSeen: new Date(),
+        });
       }
     }
 
-    io.emit(
-      "onlineUsers",
-      Object.keys(onlineUsers)
-    );
+    io.emit("onlineUsers", Object.keys(onlineUsers));
   });
 });
 
@@ -257,6 +236,12 @@ app.use(express.json());
 // ==========================
 // STATIC FILES
 // ==========================
+
+const fs = require("fs");
+
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
 
 app.use("/uploads", express.static("uploads"));
 
@@ -296,9 +281,5 @@ app.get("/", (req, res) => {
 const PORT = process.env.PORT || 5000;
 
 server.listen(process.env.PORT || 5000, () => {
-
-  console.log(
-    `Server running on port ${process.env.PORT || 5000}`
-  );
-
+  console.log(`Server running on port ${process.env.PORT || 5000}`);
 });
