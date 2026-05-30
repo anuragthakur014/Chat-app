@@ -5,11 +5,9 @@ const socket = io(
   {
     transports: ["polling"],
 
+    upgrade: false,
+
     reconnection: true,
-
-    reconnectionAttempts: 10,
-
-    reconnectionDelay: 1000,
   }
 );
 
