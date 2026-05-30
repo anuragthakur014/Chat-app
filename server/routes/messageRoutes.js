@@ -35,7 +35,7 @@ router.post(
     try {
       const { receiverId } = req.body;
 
-      const imageUrl = `https://192.168.1.50:5000/uploads/${req.file.filename}`;
+      const imageUrl = `https://chat-app-gtzp.onrender.com/uploads/${req.file.filename}`;
 
       const message = await Message.create({
         sender: req.userId,
@@ -65,7 +65,7 @@ router.post(
     try {
       const { receiverId } = req.body;
 
-      const audioUrl = `https://192.168.1.50:5000/uploads/${req.file.filename}`;
+      const audioUrl = `https://chat-app-gtzp.onrender.com/uploads/${req.file.filename}`;
 
       const message = await Message.create({
         sender: req.userId,
