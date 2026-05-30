@@ -40,10 +40,12 @@ app.use("/peerjs", peerServer);
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "https://chat-app-frontend-q7k7.onrender.com",
     methods: ["GET", "POST"],
     credentials: true,
   },
+
+  transports: ["polling"],
 });
 
 // ==========================
@@ -226,7 +228,7 @@ io.on("connection", (socket) => {
 
 app.use(
   cors({
-    origin: "*",
+    origin: "https://chat-app-frontend-q7k7.onrender.com",
     credentials: true,
   }),
 );
