@@ -38,9 +38,7 @@ function VideoCall({ user, selectedUser, setShowCall }) {
 
         // CREATE PEER
         const peer = new Peer(String(user._id), {
-          host: window.location.hostname,
-
-          port: 5000,
+          host: "chat-app-gtzp.onrender.com",
 
           path: "/peerjs",
 
@@ -182,7 +180,7 @@ function VideoCall({ user, selectedUser, setShowCall }) {
       <div className="h-[70px] shrink-0 bg-[#202c33] border-b border-gray-700 px-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-4 text-white text-2xl">
-            <button onClick={() => setShowCall(true)}>📹</button>
+            <button onClick={startCall}>📹</button>
           </div>
 
           <div>
