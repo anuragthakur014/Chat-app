@@ -166,7 +166,7 @@ function Login() {
                 to="/register"
                 className="text-[#00a884] font-semibold hover:underline"
               >
-                Registerssss here
+                Register here
               </Link>
 
             </p>
