@@ -16,6 +16,8 @@ const authRoutes = require("./routes/authRoutes");
 
 const messageRoutes = require("./routes/messageRoutes");
 
+const chatWallpaperRoutes = require("./routes/chatWallpaperRoutes");
+
 const app = express();
 
 // ==========================
@@ -240,12 +242,21 @@ app.use(express.json());
 // ==========================
 
 const fs = require("fs");
+const path = require("path");
 
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
+const uploadDir = path.join(__dirname, "uploads");
+const wallpaperDir = path.join(uploadDir, "chat-wallpapers");
+
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
 }
 
-app.use("/uploads", express.static("uploads"));
+if (!fs.existsSync(wallpaperDir)) {
+  fs.mkdirSync(wallpaperDir, { recursive: true });
+}
+
+app.use("/uploads", express.static(uploadDir));
+
 
 // ==========================
 // DATABASE
@@ -267,6 +278,8 @@ mongoose
 app.use("/api/auth", authRoutes);
 
 app.use("/api/messages", messageRoutes);
+
+app.use("/api/chat-wallpaper", chatWallpaperRoutes);
 
 // ==========================
 // TEST ROUTE
