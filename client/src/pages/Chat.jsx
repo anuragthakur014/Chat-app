@@ -481,7 +481,12 @@ function Chat() {
       formData.append("wallpaper", file);
       formData.append("receiverId", selectedUser._id);
 
-      const res = await API.post("/chat-wallpaper/upload", formData);
+      const res = await API.post("/chat-wallpaper/upload", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
       setWallpaper(res.data.wallpaper.wallpaper);
 
@@ -499,7 +504,11 @@ function Chat() {
 
   const removeWallpaper = async () => {
     try {
-      await API.delete(`/chat-wallpaper/${selectedUser._id}`);
+      await API.delete(`/chat-wallpaper/${selectedUser._id}`, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
 
       setWallpaper("");
 
@@ -818,19 +827,29 @@ function Chat() {
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  socket.emit("callUser", {
-                    userToCall: selectedUser._id,
-                    signalData: null,
-                    from: user._id,
-                    name: user.name,
-                  });
-                }}
-                className="text-white text-xl md:text-2xl"
-              >
-                📞
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setShowWallpaperModal(true)}
+                  className="text-white text-2xl hover:text-green-400"
+                  title="Wallpaper"
+                >
+                  🖼️
+                </button>
+
+                <button
+                  onClick={() => {
+                    socket.emit("callUser", {
+                      userToCall: selectedUser._id,
+                      signalData: null,
+                      from: user._id,
+                      name: user.name,
+                    });
+                  }}
+                  className="text-white text-xl md:text-2xl"
+                >
+                  📞
+                </button>
+              </div>
             </div>
 
             {/* MESSAGES */}
@@ -1022,15 +1041,6 @@ duration-300
                       className="bg-green-500 w-16 h-16 rounded-full text-3xl"
                     >
                       📞
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setShowWallpaperModal(true);
-                      }}
-                      className="text-white text-xl"
-                    >
-                      🖼
                     </button>
                   </div>
                 </div>
