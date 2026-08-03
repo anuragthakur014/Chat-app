@@ -10,6 +10,8 @@ import { AuthContext } from "../context/AuthContext";
 
 import VideoCall from "../components/VideoCall";
 
+import WallpaperModal from "../components/WallpaperModal";
+
 function Chat() {
   const { user, logout } = useContext(AuthContext);
 
@@ -48,6 +50,10 @@ function Chat() {
   const [showSidebar, setShowSidebar] = useState(true);
 
   const [unreadCounts, setUnreadCounts] = useState({});
+  //wallpaper
+  const [showWallpaperModal, setShowWallpaperModal] = useState(false);
+
+  const [wallpaper, setWallpaper] = useState("");
 
   const messagesEndRef = useRef(null);
 
@@ -101,117 +107,83 @@ function Chat() {
     };
   }, [user]);
 
- // RECEIVE MESSAGE
-useEffect(() => {
+  // RECEIVE MESSAGE
+  useEffect(() => {
+    const handleReceiveMessage = async (newMessage) => {
+      const senderId = newMessage.sender?._id || newMessage.sender;
 
-  const handleReceiveMessage = async (newMessage) => {
+      const receiverId = newMessage.receiver?._id || newMessage.receiver;
 
-    const senderId =
-      newMessage.sender?._id || newMessage.sender;
+      // ONLY ADD MESSAGE IF CURRENT CHAT OPEN
+      if (
+        selectedUser &&
+        (senderId === selectedUser._id || receiverId === selectedUser._id)
+      ) {
+        setMessages((prev) => {
+          const exists = prev.some((msg) => msg._id === newMessage._id);
 
-    const receiverId =
-      newMessage.receiver?._id || newMessage.receiver;
+          if (exists) return prev;
 
-    // ONLY ADD MESSAGE IF CURRENT CHAT OPEN
-    if (
-      selectedUser &&
-      (
-        senderId === selectedUser._id ||
-        receiverId === selectedUser._id
-      )
-    ) {
-
-      setMessages((prev) => {
-
-        const exists = prev.some(
-          (msg) => msg._id === newMessage._id
-        );
-
-        if (exists) return prev;
-
-        return [...prev, newMessage];
-
-      });
-
-    }
-
-    playNotificationSound();
-
-    // UNREAD COUNT
-    if (!selectedUser || selectedUser._id !== senderId) {
-
-      setUnreadCounts((prev) => ({
-        ...prev,
-        [senderId]: (prev[senderId] || 0) + 1,
-      }));
-
-    }
-
-    const senderUser = allUsers.find(
-      (u) => u._id === senderId
-    );
-
-    const senderName = senderUser?.name || "Someone";
-
-    // NOTIFICATION
-    if (
-      Notification.permission === "granted" &&
-      document.hidden
-    ) {
-
-      new Notification(`${senderName} sent a message`, {
-        body: newMessage.text
-          ? newMessage.text
-          : newMessage.image
-            ? "📷 Sent an image"
-            : "🎤 Sent a voice message",
-
-        icon:
-          "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-      });
-
-    }
-
-    // MESSAGE SEEN
-    if (
-      selectedUser &&
-      senderId === selectedUser._id
-    ) {
-
-      try {
-
-        await API.put(
-          `/messages/seen/${newMessage._id}`,
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        socket.emit("messageSeen", {
-          senderId,
-          messageId: newMessage._id,
+          return [...prev, newMessage];
         });
-
-      } catch (error) {
-
-        console.log(error);
-
       }
 
-    }
+      playNotificationSound();
 
-  };
+      // UNREAD COUNT
+      if (!selectedUser || selectedUser._id !== senderId) {
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [senderId]: (prev[senderId] || 0) + 1,
+        }));
+      }
 
-  socket.on("receiveMessage", handleReceiveMessage);
+      const senderUser = allUsers.find((u) => u._id === senderId);
 
-  return () => {
-    socket.off("receiveMessage", handleReceiveMessage);
-  };
+      const senderName = senderUser?.name || "Someone";
 
-}, [selectedUser, token, allUsers]);
+      // NOTIFICATION
+      if (Notification.permission === "granted" && document.hidden) {
+        new Notification(`${senderName} sent a message`, {
+          body: newMessage.text
+            ? newMessage.text
+            : newMessage.image
+              ? "📷 Sent an image"
+              : "🎤 Sent a voice message",
+
+          icon: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+        });
+      }
+
+      // MESSAGE SEEN
+      if (selectedUser && senderId === selectedUser._id) {
+        try {
+          await API.put(
+            `/messages/seen/${newMessage._id}`,
+            {},
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          );
+
+          socket.emit("messageSeen", {
+            senderId,
+            messageId: newMessage._id,
+          });
+        } catch (error) {
+          console.log(error);
+        }
+      }
+    };
+
+    socket.on("receiveMessage", handleReceiveMessage);
+
+    return () => {
+      socket.off("receiveMessage", handleReceiveMessage);
+    };
+  }, [selectedUser, token, allUsers]);
   // TYPING
   useEffect(() => {
     const handleTyping = (data) => {
@@ -500,6 +472,80 @@ useEffect(() => {
       signal: "accepted",
     });
   };
+
+  //wallpaper
+  const uploadWallpaper = async (file) => {
+    try {
+      const formData = new FormData();
+
+      formData.append("wallpaper", file);
+      formData.append("receiverId", selectedUser._id);
+
+      const res = await API.post("/chat-wallpaper/upload", formData);
+
+      setWallpaper(res.data.wallpaper.wallpaper);
+
+      socket.emit("changeWallpaper", {
+        senderId: user._id,
+        receiverId: selectedUser._id,
+        wallpaper: res.data.wallpaper.wallpaper,
+      });
+
+      setShowWallpaperModal(false);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const removeWallpaper = async () => {
+    try {
+      await API.delete(`/chat-wallpaper/${selectedUser._id}`);
+
+      setWallpaper("");
+
+      socket.emit("changeWallpaper", {
+        senderId: user._id,
+        receiverId: selectedUser._id,
+        wallpaper: "",
+      });
+
+      setShowWallpaperModal(false);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    socket.on("wallpaperChanged", (data) => {
+      if (selectedUser && data.senderId === selectedUser._id) {
+        setWallpaper(data.wallpaper);
+      }
+    });
+
+    return () => {
+      socket.off("wallpaperChanged");
+    };
+  }, [selectedUser]);
+
+  useEffect(() => {
+    if (!selectedUser) return;
+
+    const loadWallpaper = async () => {
+      try {
+        const res = await API.get(`/chat-wallpaper/${selectedUser._id}`);
+
+        if (res.data) {
+          setWallpaper(res.data.wallpaper);
+        } else {
+          setWallpaper("");
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    loadWallpaper();
+  }, [selectedUser]);
 
   // DELETE CHAT
   const deleteChat = async (userId) => {
@@ -790,14 +836,25 @@ useEffect(() => {
             {/* MESSAGES */}
             <div
               className="
-    flex-1
-    min-h-0
-    overflow-y-auto
-    overflow-x-hidden
-    px-3
-    py-2
-    pb-4
-  "
+flex-1
+min-h-0
+overflow-y-auto
+overflow-x-hidden
+px-3
+py-2
+pb-4
+transition-all
+duration-300
+"
+              style={{
+                backgroundImage: wallpaper ? `url(${wallpaper})` : "none",
+
+                backgroundSize: "cover",
+
+                backgroundPosition: "center",
+
+                backgroundRepeat: "no-repeat",
+              }}
             >
               {messages.map((msg) => {
                 const isMe = (msg.sender?._id || msg.sender) === user._id;
@@ -966,6 +1023,15 @@ useEffect(() => {
                     >
                       📞
                     </button>
+
+                    <button
+                      onClick={() => {
+                        setShowWallpaperModal(true);
+                      }}
+                      className="text-white text-xl"
+                    >
+                      🖼
+                    </button>
                   </div>
                 </div>
               </div>
@@ -985,6 +1051,15 @@ useEffect(() => {
                 setShowCall={setShowCall}
               />
             )}
+
+            <WallpaperModal
+              open={showWallpaperModal}
+              onClose={() => {
+                setShowWallpaperModal(false);
+              }}
+              onUpload={uploadWallpaper}
+              onRemove={removeWallpaper}
+            />
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-white text-3xl">
