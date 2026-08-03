@@ -30,6 +30,7 @@ function Home() {
       <div className="h-screen bg-[#0b141a] flex items-center justify-center text-white text-2xl">
 
         Loading...
+        <img src="https://pin.it/5V6gBYjDj" alt="Loading" className="w-16 h-16 mt-4" />
 
       </div>
 
