@@ -496,6 +496,8 @@ function Chat() {
         wallpaper: res.data.wallpaper.wallpaper,
       });
 
+      
+
       setShowWallpaperModal(false);
     } catch (err) {
       console.log(err);
@@ -525,36 +527,69 @@ function Chat() {
   };
 
   useEffect(() => {
-    socket.on("wallpaperChanged", (data) => {
-      if (selectedUser && data.senderId === selectedUser._id) {
-        setWallpaper(data.wallpaper);
-      }
-    });
+    const handleWallpaper = (data) => {
+
+        const isCurrentChat =
+            (data.senderId === selectedUser?._id &&
+                data.receiverId === user._id) ||
+
+            (data.receiverId === selectedUser?._id &&
+                data.senderId === user._id);
+
+        if (isCurrentChat) {
+            setWallpaper(data.wallpaper);
+        }
+    };
+
+    socket.on("wallpaperChanged", handleWallpaper);
 
     return () => {
-      socket.off("wallpaperChanged");
+        socket.off("wallpaperChanged", handleWallpaper);
     };
-  }, [selectedUser]);
+}, [selectedUser, user]);
 
   useEffect(() => {
+
+    setWallpaper("");
+
     if (!selectedUser) return;
 
     const loadWallpaper = async () => {
-      try {
-        const res = await API.get(`/chat-wallpaper/${selectedUser._id}`);
 
-        if (res.data) {
-          setWallpaper(res.data.wallpaper);
-        } else {
-          setWallpaper("");
+        try {
+
+            const res = await API.get(
+                `/chat-wallpaper/${selectedUser._id}`,
+                {
+                    headers:{
+                        Authorization:`Bearer ${token}`
+                    }
+                }
+            );
+
+            if(res.data && res.data.wallpaper){
+
+                setWallpaper(res.data.wallpaper);
+
+            }else{
+
+                setWallpaper("");
+
+            }
+
+        }catch(err){
+
+            console.log(err);
+
+            setWallpaper("");
+
         }
-      } catch (err) {
-        console.log(err);
-      }
+
     };
 
     loadWallpaper();
-  }, [selectedUser]);
+
+}, [selectedUser, token]);
 
   // DELETE CHAT
   const deleteChat = async (userId) => {
