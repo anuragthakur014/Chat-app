@@ -61,6 +61,18 @@ const onlineUsers = {};
 // ==========================
 
 io.on("connection", (socket) => {
+  socket.on("changeWallpaper", (data) => {
+
+    const receiverSocket =
+        onlineUsers[String(data.receiverId)]?.socketId;
+
+    if(receiverSocket){
+
+        io.to(receiverSocket).emit("wallpaperChanged",data);
+
+    }
+
+});
   console.log("SOCKET CONNECTED:", socket.id);
 
   // ==========================

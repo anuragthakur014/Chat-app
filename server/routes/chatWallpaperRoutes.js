@@ -52,8 +52,7 @@ router.post(
       // Always store users in sorted order
       const users = [req.userId, receiverId].sort();
 
-      const wallpaperUrl =
-        `${req.protocol}://${req.get("host")}/uploads/chat-wallpapers/${req.file.filename}`;
+      const wallpaperUrl = `${req.protocol}://${req.get("host")}/uploads/chat-wallpapers/${req.file.filename}`;
 
       let wallpaper = await ChatWallpaper.findOne({
         users,
@@ -76,7 +75,6 @@ router.post(
         success: true,
         wallpaper,
       });
-
     } catch (error) {
       console.log(error);
 
@@ -84,79 +82,65 @@ router.post(
         message: "Server Error",
       });
     }
-  }
+  },
 );
 
 // =========================
 // GET WALLPAPER
 // =========================
 
-router.get(
-  "/:receiverId",
-  authMiddleware,
-  async (req, res) => {
-    try {
+router.get("/:receiverId", authMiddleware, async (req, res) => {
+  try {
+    const users = [req.userId, req.params.receiverId].sort();
 
-      const users = [
-        req.userId,
-        req.params.receiverId,
-      ].sort();
+    const wallpaper =
+await ChatWallpaper.findOne({
 
-      const wallpaper =
-        await ChatWallpaper.findOne({
-          users,
-        });
-
-      res.json(wallpaper);
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        message: "Server Error",
-      });
-
+    users:{
+        $all:users,
+        $size:2
     }
+
+});
+
+    res.json(wallpaper);
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
-);
+});
 
 // =========================
 // REMOVE WALLPAPER
 // =========================
 
-router.delete(
-  "/:receiverId",
-  authMiddleware,
-  async (req, res) => {
+router.delete("/:receiverId", authMiddleware, async (req, res) => {
+  try {
+    const users = [req.userId, req.params.receiverId].sort();
 
-    try {
+    await ChatWallpaper.findOneAndDelete({
 
-      const users = [
-        req.userId,
-        req.params.receiverId,
-      ].sort();
-
-      await ChatWallpaper.findOneAndDelete({
-        users,
-      });
-
-      res.json({
-        success: true,
-        message: "Wallpaper removed",
-      });
-
-    } catch (error) {
-
-      console.log(error);
-
-      res.status(500).json({
-        message: "Server Error",
-      });
-
+    users:{
+        $all:users,
+        $size:2
     }
 
+});
+
+    res.json({
+      success: true,
+      message: "Wallpaper removed",
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
-);
+});
 
 module.exports = router;
