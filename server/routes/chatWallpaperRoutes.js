@@ -57,28 +57,31 @@ router.post(
 
       const wallpaperUrl = `https://${req.get("host")}/uploads/chat-wallpapers/${req.file.filename}`;
 
-      const wallpaper = await ChatWallpaper.findOneAndUpdate(
-        {
-          users: {
-            $all: users,
-            $size: 2,
-          },
-        },
-        {
-          users,
-          wallpaper: wallpaperUrl,
-          updatedBy: req.userId,
-        },
-        {
-          new: true,
-          upsert: true,
-        },
-      );
+      let wallpaper = await ChatWallpaper.findOne({
+  users: {
+    $all: users,
+    $size: 2,
+  },
+});
 
-      res.json({
-        success: true,
-        wallpaper,
-      });
+if (wallpaper) {
+  wallpaper.wallpaper = wallpaperUrl;
+  wallpaper.updatedBy = req.userId;
+
+  await wallpaper.save();
+} else {
+  wallpaper = await ChatWallpaper.create({
+    users,
+    wallpaper: wallpaperUrl,
+    updatedBy: req.userId,
+  });
+}
+
+res.json({
+  success: true,
+  wallpaper,
+});
+
     } catch (error) {
       console.error("Wallpaper Upload Error:");
       console.error(error);
