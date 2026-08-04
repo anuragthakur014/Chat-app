@@ -35,6 +35,9 @@ router.post(
   upload.single("wallpaper"),
   async (req, res) => {
     try {
+      console.log("BODY:", req.body);
+      console.log("FILE:", req.file);
+      console.log("USER:", req.userId);
       const { receiverId } = req.body;
 
       if (!receiverId) {
@@ -50,40 +53,39 @@ router.post(
       }
 
       // Always store users in sorted order
-      const users = [
-  req.userId.toString(),
-  receiverId.toString(),
-].sort();
+      const users = [req.userId.toString(), receiverId.toString()].sort();
 
-      const wallpaperUrl = `${req.protocol}://${req.get("host")}/uploads/chat-wallpapers/${req.file.filename}`;
+      const wallpaperUrl = `https://${req.get("host")}/uploads/chat-wallpapers/${req.file.filename}`;
 
       const wallpaper = await ChatWallpaper.findOneAndUpdate(
-  {
-    users: {
-      $all: users,
-      $size: 2,
-    },
-  },
-  {
-    users,
-    wallpaper: wallpaperUrl,
-    updatedBy: req.userId,
-  },
-  {
-    new: true,
-    upsert: true,
-  }
-);
+        {
+          users: {
+            $all: users,
+            $size: 2,
+          },
+        },
+        {
+          users,
+          wallpaper: wallpaperUrl,
+          updatedBy: req.userId,
+        },
+        {
+          new: true,
+          upsert: true,
+        },
+      );
 
       res.json({
         success: true,
         wallpaper,
       });
     } catch (error) {
-      console.log(error);
+      console.error("Wallpaper Upload Error:");
+      console.error(error);
 
       res.status(500).json({
-        message: "Server Error",
+        message: error.message,
+        stack: error.stack,
       });
     }
   },
@@ -96,16 +98,16 @@ router.post(
 router.get("/:receiverId", authMiddleware, async (req, res) => {
   try {
     const users = [
-  req.userId.toString(),
-  req.params.receiverId.toString(),
-].sort();
+      req.userId.toString(),
+      req.params.receiverId.toString(),
+    ].sort();
 
     const wallpaper = await ChatWallpaper.findOne({
-  users: {
-    $all: users,
-    $size: 2,
-  },
-});
+      users: {
+        $all: users,
+        $size: 2,
+      },
+    });
 
     res.json(wallpaper);
   } catch (error) {
@@ -124,16 +126,16 @@ router.get("/:receiverId", authMiddleware, async (req, res) => {
 router.delete("/:receiverId", authMiddleware, async (req, res) => {
   try {
     const users = [
-  req.userId.toString(),
-  req.params.receiverId.toString(),
-].sort();
+      req.userId.toString(),
+      req.params.receiverId.toString(),
+    ].sort();
 
     await ChatWallpaper.findOneAndDelete({
-  users: {
-    $all: users,
-    $size: 2,
-  },
-});
+      users: {
+        $all: users,
+        $size: 2,
+      },
+    });
 
     res.json({
       success: true,
