@@ -359,6 +359,68 @@ function Chat() {
     }
   };
 
+const sendAttachment = async (e) => {
+
+  try {
+
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    const formData = new FormData();
+
+    formData.append("attachment", file);
+
+    formData.append(
+      "receiverId",
+      selectedUser._id
+    );
+
+    const res = await API.post(
+
+      "/messages/send-attachment",
+
+      formData,
+
+      {
+
+        headers: {
+
+          Authorization: `Bearer ${token}`,
+
+          "Content-Type":
+            "multipart/form-data",
+
+        },
+
+      }
+
+    );
+
+    setMessages((prev) => [
+
+      ...prev,
+
+      res.data,
+
+    ]);
+
+    socket.emit("sendMessage", {
+
+      receiverId: selectedUser._id,
+
+      message: res.data,
+
+    });
+
+  } catch (err) {
+
+    console.log(err);
+
+  }
+
+};
+
   // START RECORDING
   const startRecording = async () => {
     try {
@@ -943,6 +1005,21 @@ duration-300
                         </audio>
                       )}
 
+
+                      {
+message.attachment?.type === "image" && (
+
+<img
+
+src={message.attachment.url}
+
+className="rounded-xl max-w-xs"
+
+/>
+
+)
+}
+
                       <div className="text-[11px] text-gray-300 text-right mt-1 flex items-center justify-end gap-1">
                         <span>
                           {new Date(msg.createdAt).toLocaleTimeString([], {
@@ -1005,14 +1082,35 @@ duration-300
               />
 
               <label className="cursor-pointer text-xl md:text-2xl text-white flex-shrink-0">
-                📎
-                <input
-                  type="file"
-                  hidden
-                  accept="image/*"
-                  onChange={sendImage}
-                />
-              </label>
+
+  📎
+
+  <input
+    type="file"
+    hidden
+
+    accept="
+      image/*,
+      video/*,
+      audio/*,
+      application/pdf,
+      .doc,
+      .docx,
+      .xls,
+      .xlsx,
+      .ppt,
+      .pptx,
+      .zip,
+      .rar,
+      .txt,
+      .apk
+    "
+
+    onChange={sendAttachment}
+
+  />
+
+</label>
 
               <button
                 onClick={async () => {
