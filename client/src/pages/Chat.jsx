@@ -1004,21 +1004,19 @@ duration-300
                           <source src={msg.audio} type="audio/webm" />
                         </audio>
                       )}
+                      
 
-
-                      {
-message.attachment?.type === "image" && (
-
-<img
-
-src={message.attachment.url}
-
-className="rounded-xl max-w-xs"
-
-/>
-
-)
-}
+                      {msg.attachment && (
+  <>
+    {msg.attachment.type === "image" && (
+      <img
+        src={msg.attachment.url}
+        alt="attachment"
+        className="rounded-lg mt-2 max-w-full"
+      />
+    )}
+  </>
+)}
 
                       <div className="text-[11px] text-gray-300 text-right mt-1 flex items-center justify-end gap-1">
                         <span>
