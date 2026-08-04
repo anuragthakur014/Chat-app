@@ -50,26 +50,30 @@ router.post(
       }
 
       // Always store users in sorted order
-      const users = [req.userId, receiverId].sort();
+      const users = [
+  req.userId.toString(),
+  receiverId.toString(),
+].sort();
 
       const wallpaperUrl = `${req.protocol}://${req.get("host")}/uploads/chat-wallpapers/${req.file.filename}`;
 
-      let wallpaper = await ChatWallpaper.findOne({
-        users,
-      });
-
-      if (wallpaper) {
-        wallpaper.wallpaper = wallpaperUrl;
-        wallpaper.updatedBy = req.userId;
-
-        await wallpaper.save();
-      } else {
-        wallpaper = await ChatWallpaper.create({
-          users,
-          wallpaper: wallpaperUrl,
-          updatedBy: req.userId,
-        });
-      }
+      const wallpaper = await ChatWallpaper.findOneAndUpdate(
+  {
+    users: {
+      $all: users,
+      $size: 2,
+    },
+  },
+  {
+    users,
+    wallpaper: wallpaperUrl,
+    updatedBy: req.userId,
+  },
+  {
+    new: true,
+    upsert: true,
+  }
+);
 
       res.json({
         success: true,
@@ -91,16 +95,16 @@ router.post(
 
 router.get("/:receiverId", authMiddleware, async (req, res) => {
   try {
-    const users = [req.userId, req.params.receiverId].sort();
+    const users = [
+  req.userId.toString(),
+  req.params.receiverId.toString(),
+].sort();
 
-    const wallpaper =
-await ChatWallpaper.findOne({
-
-    users:{
-        $all:users,
-        $size:2
-    }
-
+    const wallpaper = await ChatWallpaper.findOne({
+  users: {
+    $all: users,
+    $size: 2,
+  },
 });
 
     res.json(wallpaper);
@@ -119,15 +123,16 @@ await ChatWallpaper.findOne({
 
 router.delete("/:receiverId", authMiddleware, async (req, res) => {
   try {
-    const users = [req.userId, req.params.receiverId].sort();
+    const users = [
+  req.userId.toString(),
+  req.params.receiverId.toString(),
+].sort();
 
     await ChatWallpaper.findOneAndDelete({
-
-    users:{
-        $all:users,
-        $size:2
-    }
-
+  users: {
+    $all: users,
+    $size: 2,
+  },
 });
 
     res.json({
