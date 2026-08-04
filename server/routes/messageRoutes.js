@@ -12,19 +12,7 @@ const path = require("path");
 
 const { encryptMessage, decryptMessage } = require("../utils/encryption");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-});
+const upload = require("../middleware/uploadMiddleware");
 
 // SEND IMAGE MESSAGE
 router.post(
@@ -84,6 +72,129 @@ router.post(
       });
     }
   },
+);
+
+
+// ============================================
+// SEND UNIVERSAL ATTACHMENT
+// ============================================
+
+router.post(
+  "/send-attachment",
+  authMiddleware,
+  upload.single("attachment"),
+  async (req, res) => {
+    try {
+
+      const { receiverId } = req.body;
+
+      if (!req.file) {
+        return res.status(400).json({
+          message: "No file selected",
+        });
+      }
+
+      let folder = "documents";
+
+      if (req.file.mimetype.startsWith("image/")) {
+
+        folder = "images";
+
+      } else if (req.file.mimetype.startsWith("video/")) {
+
+        folder = "videos";
+
+      } else if (req.file.mimetype.startsWith("audio/")) {
+
+        folder = "audio";
+
+      }
+
+      const fileUrl =
+        `${req.protocol}://${req.get("host")}/uploads/${folder}/${req.file.filename}`;
+
+      let attachmentType = "document";
+
+      if (req.file.mimetype.startsWith("image/")) {
+
+        attachmentType = "image";
+
+      } else if (req.file.mimetype.startsWith("video/")) {
+
+        attachmentType = "video";
+
+      } else if (req.file.mimetype.startsWith("audio/")) {
+
+        attachmentType = "audio";
+
+      } else if (req.file.mimetype.includes("pdf")) {
+
+        attachmentType = "pdf";
+
+      } else if (
+        req.file.mimetype.includes("word")
+      ) {
+
+        attachmentType = "word";
+
+      } else if (
+        req.file.mimetype.includes("sheet") ||
+        req.file.mimetype.includes("excel")
+      ) {
+
+        attachmentType = "excel";
+
+      } else if (
+        req.file.mimetype.includes("presentation")
+      ) {
+
+        attachmentType = "ppt";
+
+      } else if (
+        req.file.mimetype.includes("zip") ||
+        req.file.mimetype.includes("rar")
+      ) {
+
+        attachmentType = "zip";
+
+      }
+
+      const message = await Message.create({
+
+        sender: req.userId,
+
+        receiver: receiverId,
+
+        attachment: {
+
+          url: fileUrl,
+
+          type: attachmentType,
+
+          mimeType: req.file.mimetype,
+
+          fileName: req.file.filename,
+
+          originalName: req.file.originalname,
+
+          size: req.file.size,
+
+        },
+
+      });
+
+      res.status(201).json(message);
+
+    } catch (err) {
+
+      console.log(err);
+
+      res.status(500).json({
+        message: "Upload failed",
+      });
+
+    }
+  }
 );
 
 // SEND MESSAGE
