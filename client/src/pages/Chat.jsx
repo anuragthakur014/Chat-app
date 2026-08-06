@@ -55,6 +55,9 @@ function Chat() {
 
   const [wallpaper, setWallpaper] = useState("");
 
+  const [calling, setCalling] = useState(false);
+const [callingUser, setCallingUser] = useState(null);
+
   const messagesEndRef = useRef(null);
 
   const displayUsers = search.trim().length > 0 ? searchUsers : allUsers;
@@ -260,27 +263,41 @@ function Chat() {
 
   // CALL REJECTED
   useEffect(() => {
-    socket.on("callRejected", () => {
-      alert("Call Declined");
 
-      setShowCall(false);
-    });
+    const handleRejected = () => {
+        setCalling(false);
+        alert("Call Rejected");
+    };
+
+    socket.on("callRejected", handleRejected);
 
     return () => {
-      socket.off("callRejected");
+        socket.off("callRejected", handleRejected);
     };
-  }, []);
+
+}, []);
+
+  
 
   // CALL ACCEPTED
   useEffect(() => {
+
     socket.on("callAccepted", () => {
-      setShowCall(true);
+
+        setCalling(false);
+
+        setShowCall(true);
+
     });
 
-    return () => {
-      socket.off("callAccepted");
-    };
-  }, []);
+    return () => socket.off("callAccepted");
+
+}, []);
+    // socket.on("callAccepted", () => {
+    //   setShowCall(true);
+    // });
+
+   
 
   // FETCH MESSAGES
   const fetchMessages = async (userId) => {
@@ -534,6 +551,16 @@ const sendAttachment = async (e) => {
       signal: "accepted",
     });
   };
+// CANCEL CALL
+  const cancelCall = () => {
+
+    socket.emit("endCall", {
+        to: selectedUser._id,
+    });
+
+    setCalling(false);
+
+};
 
   //wallpaper
   const uploadWallpaper = async (file) => {
@@ -935,13 +962,16 @@ const sendAttachment = async (e) => {
 
                 <button
                   onClick={() => {
-                    socket.emit("callUser", {
-                      userToCall: selectedUser._id,
-                      signalData: null,
-                      from: user._id,
-                      name: user.name,
-                    });
-                  }}
+    setCalling(true);
+    setCallingUser(selectedUser);
+
+    socket.emit("callUser", {
+        userToCall: selectedUser._id,
+        signalData: null,
+        from: user._id,
+        name: user.name,
+    });
+}}
                   className="text-white text-xl md:text-2xl"
                 >
                   📞
@@ -1207,6 +1237,54 @@ duration-300
             Select a user to start chatting
           </div>
         )}
+
+        {
+calling && (
+
+<div className="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center">
+
+<div className="bg-[#202c33] w-[340px] rounded-2xl p-8 text-center text-white shadow-2xl">
+
+<div className="w-24 h-24 rounded-full bg-green-500 mx-auto flex items-center justify-center text-4xl font-bold">
+
+{callingUser?.name?.charAt(0)}
+
+</div>
+
+<h2 className="mt-5 text-2xl font-semibold">
+
+{callingUser?.name}
+
+</h2>
+
+<p className="text-green-400 mt-2">
+
+📞 Ringing...
+
+</p>
+
+<div className="mt-8">
+
+<button
+
+onClick={cancelCall}
+
+className="bg-red-500 hover:bg-red-600 px-8 py-3 rounded-full"
+
+>
+
+Cancel Call
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+)
+}
       </div>
     </div>
   );
