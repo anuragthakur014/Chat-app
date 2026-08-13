@@ -18,6 +18,7 @@ const callSchema = new mongoose.Schema(
       type: String,
       enum: ["voice", "video"],
       default: "video",
+      required: true,
     },
 
     status: {
@@ -31,6 +32,7 @@ const callSchema = new mongoose.Schema(
         "ended",
       ],
       default: "ringing",
+      required: true,
     },
 
     duration: {
