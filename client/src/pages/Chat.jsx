@@ -12,6 +12,8 @@ import VideoCall from "../components/VideoCall";
 
 import WallpaperModal from "../components/WallpaperModal";
 
+import CallHistory from "../components/CallHistory";
+
 function Chat() {
   const { user, logout } = useContext(AuthContext);
 
@@ -54,6 +56,9 @@ function Chat() {
   const [showWallpaperModal, setShowWallpaperModal] = useState(false);
 
   const [wallpaper, setWallpaper] = useState("");
+
+  // calling history
+  const [activeTab, setActiveTab] = useState("chats");
 
   const [calling, setCalling] = useState(false);
 const [callingUser, setCallingUser] = useState(null);
@@ -905,7 +910,13 @@ const sendAttachment = async (e) => {
 
       {/* CHAT AREA */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-        {selectedUser ? (
+
+  {activeTab === "calls" ? (
+    <CallHistory
+      token={token}
+      user={user}
+    />
+  ) : selectedUser ? (
           <>
             {/* HEADER */}
             <div className="h-[70px] shrink-0 bg-[#202c33] border-b border-gray-700 flex items-center justify-between px-4">
@@ -1079,7 +1090,7 @@ duration-300
             </div>
 
             {/* INPUT */}
-            <div className="p-2 md:p-3 bg-[#202c33] shrink-0 flex items-center gap-2 shrink-0 w-full">
+            <div className="p-2 md:p-3 pb-[78px] md:pb-3 bg-[#202c33] shrink-0 flex items-center gap-2 w-full">
               <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className="text-2xl flex-shrink-0"
@@ -1285,7 +1296,134 @@ Cancel Call
 
 )
 }
+
+           </div>
+
+      {/* BOTTOM NAVIGATION */}
+
+      <div className="
+        md:hidden
+        fixed
+        bottom-0
+        left-0
+        right-0
+        h-[68px]
+        bg-[#202c33]
+        border-t
+        border-gray-700
+        z-[9998]
+        flex
+        items-center
+        justify-around
+        px-2
+      ">
+
+        {/* CHATS */}
+
+        <button
+          onClick={() => {
+            setActiveTab("chats");
+            setShowSidebar(true);
+          }}
+          className={`flex flex-col items-center justify-center
+            w-1/4 h-full
+            ${
+              activeTab === "chats"
+                ? "text-green-400"
+                : "text-gray-400"
+            }
+          `}
+        >
+          <span className="text-xl">
+            💬
+          </span>
+
+          <span className="text-[11px] mt-1">
+            Chats
+          </span>
+        </button>
+
+
+        {/* UPDATES */}
+
+        <button
+          onClick={() => {
+            setActiveTab("updates");
+            setShowSidebar(false);
+          }}
+          className={`flex flex-col items-center justify-center
+            w-1/4 h-full
+            ${
+              activeTab === "updates"
+                ? "text-green-400"
+                : "text-gray-400"
+            }
+          `}
+        >
+          <span className="text-xl">
+            🔄
+          </span>
+
+          <span className="text-[11px] mt-1">
+            Updates
+          </span>
+        </button>
+
+
+        {/* COMMUNITIES */}
+
+        <button
+          onClick={() => {
+            setActiveTab("communities");
+            setShowSidebar(false);
+          }}
+          className={`flex flex-col items-center justify-center
+            w-1/4 h-full
+            ${
+              activeTab === "communities"
+                ? "text-green-400"
+                : "text-gray-400"
+            }
+          `}
+        >
+          <span className="text-xl">
+            👥
+          </span>
+
+          <span className="text-[11px] mt-1">
+            Communities
+          </span>
+        </button>
+
+
+        {/* CALLS */}
+
+        <button
+          onClick={() => {
+            setActiveTab("calls");
+            setShowSidebar(false);
+            setSelectedUser(null);
+          }}
+          className={`flex flex-col items-center justify-center
+            w-1/4 h-full
+            ${
+              activeTab === "calls"
+                ? "text-green-400"
+                : "text-gray-400"
+            }
+          `}
+        >
+          <span className="text-xl">
+            📞
+          </span>
+
+          <span className="text-[11px] mt-1">
+            Calls
+          </span>
+        </button>
+
       </div>
+
     </div>
   );
 }
