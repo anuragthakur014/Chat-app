@@ -923,21 +923,26 @@ const createCallRecord = async (receiverId, type = "video") => {
             <div
               key={u._id}
               onClick={async () => {
-                setSelectedUser(u);
-                setUnreadCounts((prev) => ({
-                  ...prev,
-                  [u._id]: 0,
-                }));
-                setMessages([]);
+  // IMPORTANT:
+  // User select karte hi Chats tab par switch karo
+  setActiveTab("chats");
 
-                await fetchMessages(u._id);
+  setSelectedUser(u);
 
-                setSearch("");
+  setUnreadCounts((prev) => ({
+    ...prev,
+    [u._id]: 0,
+  }));
 
-                setSearchUsers([]);
+  setMessages([]);
 
-                setShowSidebar(false);
-              }}
+  await fetchMessages(u._id);
+
+  setSearch("");
+  setSearchUsers([]);
+
+  setShowSidebar(false);
+}}
               className={`flex items-center gap-3 p-4 border-b border-gray-700 cursor-pointer ${
                 selectedUser?._id === u._id
                   ? "bg-[#2a3942]"
