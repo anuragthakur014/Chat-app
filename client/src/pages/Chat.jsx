@@ -62,6 +62,7 @@ function Chat() {
 
   const [calling, setCalling] = useState(false);
 const [callingUser, setCallingUser] = useState(null);
+const [activeCallId, setActiveCallId] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -243,6 +244,8 @@ const [callingUser, setCallingUser] = useState(null);
       setCallerName(data.name);
 
       setCallerSignal(data.signal);
+
+      setActiveCallId(data.callId);
 
       playNotificationSound();
 
@@ -549,22 +552,100 @@ const sendAttachment = async (e) => {
     }
   };
 
+  // ==========================================
+// CREATE CALL HISTORY RECORD
+// ==========================================
+
+const createCallRecord = async (receiverId, type = "video") => {
+  try {
+    const res = await API.post(
+      "/calls",
+      {
+        receiverId,
+        type,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("CALL RECORD CREATED:", res.data);
+
+    return res.data;
+  } catch (error) {
+    console.error(
+      "Create Call Record Error:",
+      error.response?.data || error
+    );
+
+    return null;
+  }
+};
+
   // ANSWER CALL
-  const answerCall = () => {
+  const answerCall = async () => {
+  try {
     socket.emit("answerCall", {
       to: caller,
       signal: "accepted",
     });
-  };
-// CANCEL CALL
-  const cancelCall = () => {
 
+    // UPDATE CALL HISTORY
+    if (activeCallId) {
+      await API.put(
+        `/calls/${activeCallId}`,
+        {
+          status: "answered",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("CALL STATUS: ANSWERED");
+    }
+  } catch (error) {
+    console.error(
+      "Answer Call Error:",
+      error.response?.data || error
+    );
+  }
+};
+// CANCEL CALL
+ const cancelCall = async () => {
+  try {
     socket.emit("endCall", {
-        to: selectedUser._id,
+      to: selectedUser._id,
     });
 
-    setCalling(false);
+    if (activeCallId) {
+      await API.put(
+        `/calls/${activeCallId}`,
+        {
+          status: "cancelled",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    }
 
+    setCalling(false);
+    setCallingUser(null);
+    setActiveCallId(null);
+
+  } catch (error) {
+    console.error(
+      "Cancel Call Error:",
+      error.response?.data || error
+    );
+  }
 };
 
   //wallpaper
@@ -972,21 +1053,51 @@ const sendAttachment = async (e) => {
                 </button>
 
                 <button
-                  onClick={() => {
-    setCalling(true);
-    setCallingUser(selectedUser);
+  onClick={async () => {
+    try {
+      setCalling(true);
+      setCallingUser(selectedUser);
 
-    socket.emit("callUser", {
+      // CREATE CALL HISTORY
+      const callRecord = await createCallRecord(
+        selectedUser._id,
+        "video"
+      );
+
+      if (!callRecord) {
+        setCalling(false);
+        setCallingUser(null);
+
+        alert("Unable to start call");
+
+        return;
+      }
+
+      // SAVE CALL ID
+      setActiveCallId(callRecord._id);
+
+      console.log("ACTIVE CALL ID:", callRecord._id);
+
+      // SEND CALL TO RECEIVER
+      socket.emit("callUser", {
         userToCall: selectedUser._id,
         signalData: null,
         from: user._id,
         name: user.name,
-    });
-}}
-                  className="text-white text-xl md:text-2xl"
-                >
-                  📞
-                </button>
+        callId: callRecord._id,
+      });
+
+    } catch (error) {
+      console.error("Start Call Error:", error);
+
+      setCalling(false);
+      setCallingUser(null);
+    }
+  }}
+  className="text-white text-xl md:text-2xl"
+>
+  📞
+</button>
               </div>
             </div>
 
@@ -1190,13 +1301,36 @@ duration-300
 
                   <div className="flex items-center justify-center gap-6 mt-6">
                     <button
-                      onClick={() => {
-                        socket.emit("rejectCall", {
-                          to: caller,
-                        });
+                      onClick={async () => {
+  try {
+    socket.emit("rejectCall", {
+      to: caller,
+    });
 
-                        setReceivingCall(false);
-                      }}
+    if (activeCallId) {
+      await API.put(
+        `/calls/${activeCallId}`,
+        {
+          status: "rejected",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    }
+
+    setReceivingCall(false);
+    setActiveCallId(null);
+
+  } catch (error) {
+    console.error(
+      "Reject Call Error:",
+      error.response?.data || error
+    );
+  }
+}}
                       className="bg-red-500 w-16 h-16 rounded-full text-3xl"
                     >
                       ❌
