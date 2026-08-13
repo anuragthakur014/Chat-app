@@ -14,6 +14,8 @@ import WallpaperModal from "../components/WallpaperModal";
 
 import CallHistory from "../components/CallHistory";
 
+import Profile from "../components/Profile";
+
 function Chat() {
   const { user, logout } = useContext(AuthContext);
 
@@ -63,6 +65,7 @@ function Chat() {
   const [calling, setCalling] = useState(false);
 const [callingUser, setCallingUser] = useState(null);
 const [activeCallId, setActiveCallId] = useState(null);
+const [callStartedAt, setCallStartedAt] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -290,13 +293,14 @@ const [activeCallId, setActiveCallId] = useState(null);
   // CALL ACCEPTED
   useEffect(() => {
 
-    socket.on("callAccepted", () => {
+   socket.on("callAccepted", () => {
+  setCalling(false);
 
-        setCalling(false);
+  // Call actually connected
+  setCallStartedAt(Date.now());
 
-        setShowCall(true);
-
-    });
+  setShowCall(true);
+});
 
     return () => socket.off("callAccepted");
 
@@ -585,14 +589,17 @@ const createCallRecord = async (receiverId, type = "video") => {
 };
 
   // ANSWER CALL
-  const answerCall = async () => {
+ const answerCall = async () => {
   try {
     socket.emit("answerCall", {
       to: caller,
       signal: "accepted",
     });
 
-    // UPDATE CALL HISTORY
+    // Call actual start time
+    const startedAt = Date.now();
+    setCallStartedAt(startedAt);
+
     if (activeCallId) {
       await API.put(
         `/calls/${activeCallId}`,
@@ -605,14 +612,55 @@ const createCallRecord = async (receiverId, type = "video") => {
           },
         }
       );
-
-      console.log("CALL STATUS: ANSWERED");
     }
+
+    setReceivingCall(false);
+    setShowCall(true);
+
   } catch (error) {
     console.error(
       "Answer Call Error:",
       error.response?.data || error
     );
+  }
+};
+
+// CALL END DURATION SAVE
+const endCallAndSaveDuration = async () => {
+  try {
+    if (!activeCallId) return;
+
+    let duration = 0;
+
+    if (callStartedAt) {
+      duration = Math.floor(
+        (Date.now() - callStartedAt) / 1000
+      );
+    }
+
+    await API.put(
+      `/calls/${activeCallId}`,
+      {
+        status: "ended",
+        duration,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("CALL DURATION:", duration, "seconds");
+
+  } catch (error) {
+    console.error(
+      "Save Call Duration Error:",
+      error.response?.data || error
+    );
+  } finally {
+    setCallStartedAt(null);
+    setActiveCallId(null);
   }
 };
 // CANCEL CALL
@@ -1005,11 +1053,16 @@ const createCallRecord = async (receiverId, type = "video") => {
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
 
   {activeTab === "calls" ? (
-    <CallHistory
-      token={token}
-      user={user}
-    />
-  ) : selectedUser ? (
+  <CallHistory
+    token={token}
+    user={user}
+  />
+) : activeTab === "profile" ? (
+  <Profile
+    user={user}
+    logout={logout}
+  />
+) : selectedUser ? (
           <>
             {/* HEADER */}
             <div className="h-[70px] shrink-0 bg-[#202c33] border-b border-gray-700 flex items-center justify-between px-4">
@@ -1516,30 +1569,31 @@ Cancel Call
         </button>
 
 
-        {/* COMMUNITIES */}
+       {/* PROFILE */}
 
-        <button
-          onClick={() => {
-            setActiveTab("communities");
-            setShowSidebar(false);
-          }}
-          className={`flex flex-col items-center justify-center
-            w-1/4 h-full
-            ${
-              activeTab === "communities"
-                ? "text-green-400"
-                : "text-gray-400"
-            }
-          `}
-        >
-          <span className="text-xl">
-            👥
-          </span>
+<button
+  onClick={() => {
+    setActiveTab("profile");
+    setShowSidebar(false);
+    setSelectedUser(null);
+  }}
+  className={`flex flex-col items-center justify-center
+    w-1/4 h-full
+    ${
+      activeTab === "profile"
+        ? "text-green-400"
+        : "text-gray-400"
+    }
+  `}
+>
+  <span className="text-xl">
+    👤
+  </span>
 
-          <span className="text-[11px] mt-1">
-            Communities
-          </span>
-        </button>
+  <span className="text-[11px] mt-1">
+    Profile
+  </span>
+</button>
 
 
         {/* CALLS */}
