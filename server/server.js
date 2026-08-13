@@ -20,6 +20,8 @@ const chatWallpaperRoutes = require("./routes/chatWallpaperRoutes");
 
 const attachmentRoutes = require("./routes/attachmentRoutes");
 
+const callRoutes = require("./routes/callRoutes");
+
 const app = express();
 
 // ==========================
@@ -296,6 +298,8 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/chat-wallpaper", chatWallpaperRoutes);
 
 app.use("/api/attachments", attachmentRoutes);
+
+app.use("/api/calls", callRoutes);
 
 // ==========================
 // TEST ROUTE
