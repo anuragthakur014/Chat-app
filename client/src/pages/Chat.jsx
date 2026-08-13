@@ -806,8 +806,14 @@ const createCallRecord = async (receiverId, type = "video") => {
     >
       {/* SIDEBAR */}
       <div
-        className={`
-    ${selectedUser && !showSidebar ? "hidden md:flex" : "flex"}
+  className={`
+    ${
+      activeTab === "calls"
+        ? "hidden"
+        : selectedUser && !showSidebar
+          ? "hidden md:flex"
+          : "flex"
+    }
     w-full md:w-[350px]
     bg-[#202c33]
     border-r border-gray-700
@@ -817,6 +823,7 @@ const createCallRecord = async (receiverId, type = "video") => {
     overflow-hidden
     h-full
   `}
+
       >
         {/* PROFILE */}
         <div className="p-4 bg-[#202c33] border-b border-gray-700 flex items-center justify-between">
